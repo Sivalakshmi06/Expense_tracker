@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpenseFlow - Login & Register</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="auth-wrapper">
+            <div class="auth-header">
+                <h1><i class="fas fa-wallet"></i> ExpenseFlow</h1>
+                <p>Smart Expense Tracking Made Simple</p>
+            </div>
+            
+            <!-- Login Form -->
+            <div class="form-container active" id="loginForm">
+                <div class="form-header">
+                    <h2>Welcome Back!</h2>
+                    <p>Sign in to continue tracking your expenses</p>
+                </div>
+                
+                <form id="loginFormElement">
+                    <div class="input-group">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="loginEmail" placeholder="Email Address" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="loginPassword" placeholder="Password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Sign In
+                    </button>
+                </form>
+                
+                <div class="form-footer">
+                    <p>Don't have an account? <a href="#" onclick="switchToRegister()">Create one</a></p>
+                    <div class="demo-info">
+                        <small><i class="fas fa-info-circle"></i> Demo: demo@example.com / demo123</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Register Form -->
+            <div class="form-container" id="registerForm">
+                <div class="form-header">
+                    <h2>Join ExpenseFlow</h2>
+                    <p>Start your journey to better financial management</p>
+                </div>
+                
+                <form id="registerFormElement">
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="registerName" placeholder="Full Name" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="registerEmail" placeholder="Email Address" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="registerPassword" placeholder="Password" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <i class="fas fa-rupee-sign"></i>
+                        <input type="number" id="registerBudget" placeholder="Monthly Budget (₹)" value="30000" required>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </button>
+                </form>
+                
+                <div class="form-footer">
+                    <p>Already have an account? <a href="#" onclick="switchToLogin()">Sign in</a></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="features-showcase">
+            <div class="feature-slide active" id="slide1">
+                <div class="feature-content">
+                    <i class="fas fa-chart-pie feature-icon"></i>
+                    <h3>Smart Analytics</h3>
+                    <p>Get detailed insights into your spending patterns with beautiful charts and progress tracking</p>
+                </div>
+            </div>
+            
+            <div class="feature-slide" id="slide2">
+                <div class="feature-content">
+                    <i class="fas fa-tags feature-icon"></i>
+                    <h3>Category Management</h3>
+                    <p>Organize expenses by categories and see where your money goes with visual breakdowns</p>
+                </div>
+            </div>
+            
+            <div class="feature-slide" id="slide3">
+                <div class="feature-content">
+                    <i class="fas fa-target feature-icon"></i>
+                    <h3>Budget Tracking</h3>
+                    <p>Set monthly budgets and track your progress with real-time updates and alerts</p>
+                </div>
+            </div>
+            
+            <div class="slide-indicators">
+                <span class="indicator active" onclick="showSlide(1)"></span>
+                <span class="indicator" onclick="showSlide(2)"></span>
+                <span class="indicator" onclick="showSlide(3)"></span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="notification" id="notification"></div>
+    
+    <script src="{{ url_for('static', filename='auth.js') }}"></script>
+</body>
+</html>

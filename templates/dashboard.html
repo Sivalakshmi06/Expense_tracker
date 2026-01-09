@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpenseFlow - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-wallet"></i>
+                    <h1>ExpenseFlow</h1>
+                </div>
+                <div class="user-menu">
+                    <a href="/analytics" class="nav-link">
+                        <i class="fas fa-chart-line"></i> Analytics
+                    </a>
+                    <span class="user-name">Welcome back!</span>
+                    <button class="btn-logout" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card total-spent">
+                    <div class="stat-icon">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Total Spent</h3>
+                        <p class="stat-value" id="totalSpent">₹0</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card budget-remaining">
+                    <div class="stat-icon">
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Budget Remaining</h3>
+                        <p class="stat-value" id="budgetRemaining">₹0</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card expense-count">
+                    <div class="stat-icon">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Total Expenses</h3>
+                        <p class="stat-value" id="expenseCount">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Budget Progress -->
+            <div class="budget-progress-card">
+                <h3><i class="fas fa-chart-line"></i> Budget Progress</h3>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="budgetProgress"></div>
+                    </div>
+                    <div class="progress-info">
+                        <span id="budgetPercentage">0%</span>
+                        <span>of monthly budget used</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-grid">
+                <!-- Add Expense Form -->
+                <div class="expense-form-card">
+                    <h3><i class="fas fa-plus-circle"></i> Add New Expense</h3>
+                    <form id="expenseForm">
+                        <div class="form-group">
+                            <label for="expenseTitle">Expense Title</label>
+                            <input type="text" id="expenseTitle" placeholder="e.g., Grocery Shopping" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="expenseAmount">Amount (₹)</label>
+                                <input type="number" id="expenseAmount" placeholder="0" step="0.01" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="expenseCategory">Category</label>
+                                <select id="expenseCategory" required>
+                                    <option value="">Select Category</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="expenseDate">Date</label>
+                            <input type="date" id="expenseDate" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="expenseDescription">Description (Optional)</label>
+                            <textarea id="expenseDescription" placeholder="Additional details..."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-plus"></i> Add Expense
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Category Chart -->
+                <div class="chart-card">
+                    <h3><i class="fas fa-chart-pie"></i> Spending by Category</h3>
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expenses List -->
+            <div class="expenses-card">
+                <div class="expenses-header">
+                    <h3><i class="fas fa-list"></i> Recent Expenses</h3>
+                    <div class="expenses-summary">
+                        <span id="expensesTotal">Total: ₹0</span>
+                    </div>
+                </div>
+                <div class="expenses-list" id="expensesList">
+                    <!-- Expenses will be loaded here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="notification" id="notification"></div>
+    
+    <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+</body>
+</html>
