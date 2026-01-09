@@ -36,24 +36,62 @@ async function loadCategories() {
 // Load expenses
 async function loadExpenses() {
     try {
+        console.log('Loading expenses...');
         const response = await fetch('/api/expenses');
-        expenses = await response.json();
+        
+        console.log('Expenses response status:', response.status);
+        
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error('Expenses endpoint not found (404). Please check if the server is running correctly.');
+            } else if (response.status === 401) {
+                throw new Error('Not authenticated. Please log in again.');
+            } else {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+        }
+        
+        const data = await response.json();
+        console.log('Expenses data received:', data.length, 'expenses');
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        expenses = data;
         renderExpenses();
+        
+        console.log('Expenses loaded successfully');
     } catch (error) {
-        showNotification('Failed to load expenses', 'error');
+        console.error('Error loading expenses:', error);
+        showNotification('Failed to load expenses: ' + error.message, 'error');
+        
+        // Set empty expenses to prevent UI errors
+        expenses = [];
+        renderExpenses();
     }
 }
 
 // Load statistics
 async function loadStats() {
     try {
+        console.log('Loading stats...');
         const response = await fetch('/api/stats');
         
+        console.log('Stats response status:', response.status);
+        
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            if (response.status === 404) {
+                throw new Error('Statistics endpoint not found (404). Please check if the server is running correctly.');
+            } else if (response.status === 401) {
+                throw new Error('Not authenticated. Please log in again.');
+            } else {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
         }
         
         const data = await response.json();
+        console.log('Stats data received:', data);
         
         if (data.error) {
             throw new Error(data.error);
@@ -62,6 +100,8 @@ async function loadStats() {
         stats = data;
         updateStatsDisplay();
         updateCategoryChart();
+        
+        console.log('Stats loaded successfully');
     } catch (error) {
         console.error('Error loading stats:', error);
         showNotification('Failed to load statistics: ' + error.message, 'error');

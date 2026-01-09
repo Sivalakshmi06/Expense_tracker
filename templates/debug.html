@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpenseFlow Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .debug-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .debug-section h2 {
+            color: #1E3A8A;
+            margin-top: 0;
+        }
+        .test-button {
+            background: #3B82F6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #1E3A8A;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { border-color: #28a745; background-color: #d4edda; }
+        .error { border-color: #dc3545; background-color: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>ExpenseFlow Debug Panel</h1>
+    
+    <div class="debug-section">
+        <h2>Quick Tests</h2>
+        <button class="test-button" onclick="testEndpoint('/health')">Test Health</button>
+        <button class="test-button" onclick="testEndpoint('/api/debug/session')">Test Session</button>
+        <button class="test-button" onclick="testEndpoint('/api/debug/routes')">List Routes</button>
+        <button class="test-button" onclick="testEndpoint('/api/debug/test-endpoints')">Test All Endpoints</button>
+    </div>
+    
+    <div class="debug-section">
+        <h2>API Tests (Requires Login)</h2>
+        <button class="test-button" onclick="testEndpoint('/api/expenses')">Test Expenses</button>
+        <button class="test-button" onclick="testEndpoint('/api/stats')">Test Stats</button>
+        <button class="test-button" onclick="testEndpoint('/api/past-month-data')">Test Past Month Data</button>
+        <button class="test-button" onclick="testEndpoint('/api/analytics-summary')">Test Analytics</button>
+        <button class="test-button" onclick="regenerateData()">Regenerate Past Data</button>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Results</h2>
+        <div id="results"></div>
+    </div>
+    
+    <script>
+        async function testEndpoint(url) {
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                const resultDiv = document.createElement('div');
+                resultDiv.className = response.ok ? 'result success' : 'result error';
+                resultDiv.innerHTML = `
+                    <strong>${url}</strong> (${response.status})
+                    ${JSON.stringify(data, null, 2)}
+                `;
+                
+                resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild);
+                
+            } catch (error) {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <strong>${url}</strong> (ERROR)
+                    ${error.message}
+                `;
+                
+                resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild);
+            }
+        }
+        
+        async function regenerateData() {
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                const response = await fetch('/api/regenerate-past-data', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                const resultDiv = document.createElement('div');
+                resultDiv.className = response.ok ? 'result success' : 'result error';
+                resultDiv.innerHTML = `
+                    <strong>Regenerate Past Data</strong> (${response.status})
+                    ${JSON.stringify(data, null, 2)}
+                `;
+                
+                resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild);
+                
+            } catch (error) {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <strong>Regenerate Past Data</strong> (ERROR)
+                    ${error.message}
+                `;
+                
+                resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild);
+            }
+        }
+    </script>
+</body>
+</html>
