@@ -46,7 +46,7 @@ def init_sample_data():
         'monthly_budget': 60000
     }
     
-    # Initialize expenses for demo user
+    # Initialize current expenses for demo user (for dashboard)
     expenses['demo_user'] = [
         {
             'id': str(uuid.uuid4()),
@@ -71,6 +71,38 @@ def init_sample_data():
             'category': 'Entertainment',
             'date': (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d'),
             'description': 'Weekend movie with friends'
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'title': 'Coffee & Snacks',
+            'amount': 350,
+            'category': 'Food & Dining',
+            'date': (datetime.now() - timedelta(days=3)).strftime('%Y-%m-%d'),
+            'description': 'Afternoon coffee break'
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'title': 'Electricity Bill',
+            'amount': 1200,
+            'category': 'Bills & Utilities',
+            'date': (datetime.now() - timedelta(days=5)).strftime('%Y-%m-%d'),
+            'description': 'Monthly electricity bill'
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'title': 'Online Shopping',
+            'amount': 1800,
+            'category': 'Shopping',
+            'date': (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'),
+            'description': 'Clothes and accessories'
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'title': 'Gym Membership',
+            'amount': 2000,
+            'category': 'Healthcare',
+            'date': (datetime.now() - timedelta(days=10)).strftime('%Y-%m-%d'),
+            'description': 'Monthly gym subscription'
         }
     ]
     
@@ -312,7 +344,53 @@ def api_login():
             session['user_id'] = user_id
             session['user_name'] = users[email]['name']
             
-            # Ensure past month data exists for this user
+            # Ensure current expenses exist for dashboard
+            if user_id not in expenses or not expenses[user_id]:
+                print(f"Creating sample expenses for dashboard: {user_id}")
+                expenses[user_id] = [
+                    {
+                        'id': str(uuid.uuid4()),
+                        'title': 'Grocery Shopping',
+                        'amount': 2500,
+                        'category': 'Food & Dining',
+                        'date': datetime.now().strftime('%Y-%m-%d'),
+                        'description': 'Weekly groceries from supermarket'
+                    },
+                    {
+                        'id': str(uuid.uuid4()),
+                        'title': 'Metro Card Recharge',
+                        'amount': 500,
+                        'category': 'Transportation',
+                        'date': (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d'),
+                        'description': 'Monthly metro pass'
+                    },
+                    {
+                        'id': str(uuid.uuid4()),
+                        'title': 'Movie Tickets',
+                        'amount': 800,
+                        'category': 'Entertainment',
+                        'date': (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d'),
+                        'description': 'Weekend movie with friends'
+                    },
+                    {
+                        'id': str(uuid.uuid4()),
+                        'title': 'Coffee & Snacks',
+                        'amount': 350,
+                        'category': 'Food & Dining',
+                        'date': (datetime.now() - timedelta(days=3)).strftime('%Y-%m-%d'),
+                        'description': 'Afternoon coffee break'
+                    },
+                    {
+                        'id': str(uuid.uuid4()),
+                        'title': 'Electricity Bill',
+                        'amount': 1200,
+                        'category': 'Bills & Utilities',
+                        'date': (datetime.now() - timedelta(days=5)).strftime('%Y-%m-%d'),
+                        'description': 'Monthly electricity bill'
+                    }
+                ]
+            
+            # Ensure past month data exists for analytics (don't change this)
             if user_id not in past_month_data:
                 print(f"Generating past month data for existing user: {user_id}")
                 past_month_data[user_id] = generate_past_month_data(user_id)
@@ -327,58 +405,79 @@ def api_login():
 
 @app.route('/api/register', methods=['POST'])
 def api_register():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    name = data.get('name')
-    budget = data.get('budget', 30000)
-    
-    if email in users:
-        return jsonify({'success': False, 'message': 'Email already exists'}), 400
-    
-    user_id = str(uuid.uuid4())
-    users[email] = {
-        'id': user_id,
-        'email': email,
-        'password': password,
-        'name': name,
-        'monthly_budget': budget
-    }
-    
-    # Add some sample expenses for new users to demonstrate the app
-    expenses[user_id] = [
-        {
-            'id': str(uuid.uuid4()),
-            'title': 'Grocery Shopping',
-            'amount': 2500,
-            'category': 'Food & Dining',
-            'date': datetime.now().strftime('%Y-%m-%d'),
-            'description': 'Weekly groceries from supermarket'
-        },
-        {
-            'id': str(uuid.uuid4()),
-            'title': 'Metro Card Recharge',
-            'amount': 500,
-            'category': 'Transportation',
-            'date': (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d'),
-            'description': 'Monthly metro pass'
-        },
-        {
-            'id': str(uuid.uuid4()),
-            'title': 'Movie Tickets',
-            'amount': 800,
-            'category': 'Entertainment',
-            'date': (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d'),
-            'description': 'Weekend movie with friends'
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+        name = data.get('name')
+        budget = data.get('budget', 30000)
+        
+        if email in users:
+            return jsonify({'success': False, 'message': 'Email already exists'}), 400
+        
+        user_id = str(uuid.uuid4())
+        users[email] = {
+            'id': user_id,
+            'email': email,
+            'password': password,
+            'name': name,
+            'monthly_budget': budget
         }
-    ]
-    
-    # Generate past month data
-    past_month_data[user_id] = generate_past_month_data(user_id)
-    
-    session['user_id'] = user_id
-    session['user_name'] = name
-    return jsonify({'success': True, 'message': 'Registration successful'})
+        
+        # Add sample expenses for dashboard display
+        expenses[user_id] = [
+            {
+                'id': str(uuid.uuid4()),
+                'title': 'Grocery Shopping',
+                'amount': 2500,
+                'category': 'Food & Dining',
+                'date': datetime.now().strftime('%Y-%m-%d'),
+                'description': 'Weekly groceries from supermarket'
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'title': 'Metro Card Recharge',
+                'amount': 500,
+                'category': 'Transportation',
+                'date': (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d'),
+                'description': 'Monthly metro pass'
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'title': 'Movie Tickets',
+                'amount': 800,
+                'category': 'Entertainment',
+                'date': (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d'),
+                'description': 'Weekend movie with friends'
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'title': 'Coffee & Snacks',
+                'amount': 350,
+                'category': 'Food & Dining',
+                'date': (datetime.now() - timedelta(days=3)).strftime('%Y-%m-%d'),
+                'description': 'Afternoon coffee break'
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'title': 'Electricity Bill',
+                'amount': 1200,
+                'category': 'Bills & Utilities',
+                'date': (datetime.now() - timedelta(days=5)).strftime('%Y-%m-%d'),
+                'description': 'Monthly electricity bill'
+            }
+        ]
+        
+        # Generate past month data for analytics (don't change this)
+        past_month_data[user_id] = generate_past_month_data(user_id)
+        
+        session['user_id'] = user_id
+        session['user_name'] = name
+        return jsonify({'success': True, 'message': 'Registration successful'})
+        
+    except Exception as e:
+        print(f"Error in registration: {str(e)}")
+        return jsonify({'success': False, 'message': 'Registration failed'}), 500
 
 @app.route('/api/logout', methods=['POST'])
 def api_logout():
