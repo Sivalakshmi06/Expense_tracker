@@ -171,7 +171,7 @@ def generate_past_month_data(user_id):
         
     except Exception as e:
         print(f"Error generating past month data for user {user_id}: {str(e)}")
-        return []  # Return empty list on error
+        return []  # Return empty lis
 
 # Initialize sample data
 init_sample_data()
