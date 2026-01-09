@@ -19,9 +19,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadAnalyticsData() {
     try {
         const response = await fetch('/api/analytics-summary');
-        analyticsData = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        analyticsData = data;
     } catch (error) {
-        showNotification('Failed to load analytics data', 'error');
+        console.error('Error loading analytics data:', error);
+        showNotification('Failed to load analytics data: ' + error.message, 'error');
+        
+        // Set default analytics data to prevent UI errors
+        analyticsData = {
+            total_spent: 0,
+            category_totals: {},
+            daily_spending: {},
+            unnecessary_expenses: [],
+            savings_potential: 0,
+            recommendations: [],
+            expense_count: 0
+        };
     }
 }
 
@@ -29,9 +52,24 @@ async function loadAnalyticsData() {
 async function loadPastMonthData() {
     try {
         const response = await fetch('/api/past-month-data');
-        pastMonthData = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        pastMonthData = data;
     } catch (error) {
-        showNotification('Failed to load past month data', 'error');
+        console.error('Error loading past month data:', error);
+        showNotification('Failed to load past month data: ' + error.message, 'error');
+        
+        // Set default past month data
+        pastMonthData = [];
     }
 }
 

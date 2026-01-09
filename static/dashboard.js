@@ -48,11 +48,35 @@ async function loadExpenses() {
 async function loadStats() {
     try {
         const response = await fetch('/api/stats');
-        stats = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        stats = data;
         updateStatsDisplay();
         updateCategoryChart();
     } catch (error) {
-        showNotification('Failed to load statistics', 'error');
+        console.error('Error loading stats:', error);
+        showNotification('Failed to load statistics: ' + error.message, 'error');
+        
+        // Set default stats to prevent UI errors
+        stats = {
+            total_spent: 0,
+            budget: 30000,
+            remaining: 30000,
+            budget_used_percentage: 0,
+            category_totals: {},
+            expense_count: 0
+        };
+        updateStatsDisplay();
+        updateCategoryChart();
     }
 }
 
@@ -212,12 +236,39 @@ function setTodayDate() {
 async function addExpense(e) {
     e.preventDefault();
     
+    const title = document.getElementById('expenseTitle').value.trim();
+    const amount = document.getElementById('expenseAmount').value;
+    const category = document.getElementById('expenseCategory').value;
+    const date = document.getElementById('expenseDate').value;
+    const description = document.getElementById('expenseDescription').value.trim();
+    
+    // Client-side validation
+    if (!title) {
+        showNotification('Please enter an expense title', 'error');
+        return;
+    }
+    
+    if (!amount || parseFloat(amount) <= 0) {
+        showNotification('Please enter a valid amount', 'error');
+        return;
+    }
+    
+    if (!category) {
+        showNotification('Please select a category', 'error');
+        return;
+    }
+    
+    if (!date) {
+        showNotification('Please select a date', 'error');
+        return;
+    }
+    
     const formData = {
-        title: document.getElementById('expenseTitle').value,
-        amount: parseFloat(document.getElementById('expenseAmount').value),
-        category: document.getElementById('expenseCategory').value,
-        date: document.getElementById('expenseDate').value,
-        description: document.getElementById('expenseDescription').value
+        title: title,
+        amount: parseFloat(amount),
+        category: category,
+        date: date,
+        description: description
     };
     
     try {
@@ -229,9 +280,10 @@ async function addExpense(e) {
             body: JSON.stringify(formData)
         });
         
-        if (response.ok) {
-            const newExpense = await response.json();
-            expenses.push(newExpense);
+        const responseData = await response.json();
+        
+        if (response.ok && responseData.id) {
+            expenses.push(responseData);
             
             // Reset form
             document.getElementById('expenseForm').reset();
@@ -243,10 +295,12 @@ async function addExpense(e) {
             
             showNotification('Expense added successfully!', 'success');
         } else {
-            showNotification('Failed to add expense', 'error');
+            const errorMessage = responseData.error || 'Failed to add expense';
+            showNotification(errorMessage, 'error');
         }
     } catch (error) {
-        showNotification('Failed to add expense', 'error');
+        console.error('Error adding expense:', error);
+        showNotification('Network error. Please check your connection and try again.', 'error');
     }
 }
 
