@@ -196,22 +196,28 @@ def login():
 
 @app.route('/api/login', methods=['POST'])
 def api_login():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    
-    if email in users and users[email]['password'] == password:
-        user_id = users[email]['id']
-        session['user_id'] = user_id
-        session['user_name'] = users[email]['name']
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
         
-        # Ensure past month data exists for this user
-        if user_id not in past_month_data:
-            past_month_data[user_id] = generate_past_month_data(user_id)
+        if email in users and users[email]['password'] == password:
+            user_id = users[email]['id']
+            session['user_id'] = user_id
+            session['user_name'] = users[email]['name']
+            
+            # Ensure past month data exists for this user
+            if user_id not in past_month_data:
+                print(f"Generating past month data for existing user: {user_id}")
+                past_month_data[user_id] = generate_past_month_data(user_id)
+            
+            return jsonify({'success': True, 'message': 'Login successful'})
         
-        return jsonify({'success': True, 'message': 'Login successful'})
-    
-    return jsonify({'success': False, 'message': 'Invalid credentials'}), 401
+        return jsonify({'success': False, 'message': 'Invalid credentials'}), 401
+        
+    except Exception as e:
+        print(f"Error in login: {str(e)}")
+        return jsonify({'success': False, 'message': 'Login failed'}), 500
 
 @app.route('/api/register', methods=['POST'])
 def api_register():
@@ -389,12 +395,25 @@ def analytics():
 
 @app.route('/api/past-month-data')
 def get_past_month_data():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    user_id = session['user_id']
-    past_data = past_month_data.get(user_id, [])
-    return jsonify(past_data)
+    try:
+        if 'user_id' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user_id = session['user_id']
+        
+        # Ensure past month data exists for this user
+        if user_id not in past_month_data:
+            print(f"Generating past month data for user: {user_id}")
+            past_month_data[user_id] = generate_past_month_data(user_id)
+        
+        past_data = past_month_data.get(user_id, [])
+        print(f"Returning {len(past_data)} past month expenses totaling ₹{sum(exp['amount'] for exp in past_data)}")
+        
+        return jsonify(past_data)
+        
+    except Exception as e:
+        print(f"Error getting past month data: {str(e)}")
+        return jsonify({'error': 'Failed to load past month data'}), 500
 
 @app.route('/api/analytics-summary')
 def get_analytics_summary():
@@ -420,52 +439,134 @@ def get_analytics_summary():
             date = exp['date']
             daily_spending[date] = daily_spending.get(date, 0) + exp['amount']
         
-        # Identify unnecessary expenses (Entertainment, Shopping over certain thresholds)
+        # Identify unnecessary expenses with more detailed criteria
         unnecessary_expenses = []
         savings_potential = 0
         
         for exp in past_data:
             is_unnecessary = False
-            if exp['category'] == 'Entertainment' and exp['amount'] > 500:
+            saving_percentage = 0
+            reason = ""
+            
+            # Food & Dining - expensive meals/dining out
+            if exp['category'] == 'Food & Dining' and exp['amount'] > 400:
                 is_unnecessary = True
-            elif exp['category'] == 'Shopping' and exp['amount'] > 1000:
+                saving_percentage = 0.4  # 40% savings potential
+                reason = "Expensive dining - consider home cooking"
+            elif exp['category'] == 'Food & Dining' and exp['amount'] > 250:
                 is_unnecessary = True
-            elif exp['category'] == 'Food & Dining' and exp['amount'] > 300:
+                saving_percentage = 0.25  # 25% savings potential
+                reason = "Frequent dining out - reduce frequency"
+            
+            # Entertainment - high entertainment costs
+            elif exp['category'] == 'Entertainment' and exp['amount'] > 800:
                 is_unnecessary = True
+                saving_percentage = 0.5  # 50% savings potential
+                reason = "Expensive entertainment - find cheaper alternatives"
+            elif exp['category'] == 'Entertainment' and exp['amount'] > 400:
+                is_unnecessary = True
+                saving_percentage = 0.3  # 30% savings potential
+                reason = "High entertainment spending - consider free activities"
+            
+            # Shopping - non-essential purchases
+            elif exp['category'] == 'Shopping' and exp['amount'] > 1500:
+                is_unnecessary = True
+                saving_percentage = 0.6  # 60% savings potential
+                reason = "Expensive shopping - avoid impulse purchases"
+            elif exp['category'] == 'Shopping' and exp['amount'] > 800:
+                is_unnecessary = True
+                saving_percentage = 0.35  # 35% savings potential
+                reason = "Frequent shopping - create a budget"
+            
+            # Transportation - expensive rides
+            elif exp['category'] == 'Transportation' and exp['amount'] > 200:
+                is_unnecessary = True
+                saving_percentage = 0.3  # 30% savings potential
+                reason = "Expensive transport - use public transport"
+            
+            # Other categories with high amounts
+            elif exp['category'] == 'Other' and exp['amount'] > 1000:
+                is_unnecessary = True
+                saving_percentage = 0.4  # 40% savings potential
+                reason = "High miscellaneous spending - track expenses better"
             
             if is_unnecessary:
-                unnecessary_expenses.append(exp)
-                # Assume 30% of unnecessary expense could be saved
-                savings_potential += exp['amount'] * 0.3
+                exp_copy = exp.copy()
+                exp_copy['saving_potential'] = exp['amount'] * saving_percentage
+                exp_copy['saving_reason'] = reason
+                exp_copy['saving_percentage'] = saving_percentage * 100
+                unnecessary_expenses.append(exp_copy)
+                savings_potential += exp['amount'] * saving_percentage
         
-        # Generate savings recommendations
+        # Generate more comprehensive savings recommendations
         recommendations = []
         
-        if category_totals.get('Food & Dining', 0) > 15000:
+        # Food & Dining recommendations
+        food_spending = category_totals.get('Food & Dining', 0)
+        if food_spending > 12000:
             recommendations.append({
                 'category': 'Food & Dining',
-                'current': category_totals['Food & Dining'],
-                'suggested': 12000,
-                'savings': category_totals['Food & Dining'] - 12000,
-                'tip': 'Cook more meals at home and limit dining out to weekends'
+                'current': food_spending,
+                'suggested': 10000,
+                'savings': food_spending - 10000,
+                'tip': 'Cook more meals at home, meal prep on weekends, and limit dining out to special occasions'
+            })
+        elif food_spending > 8000:
+            recommendations.append({
+                'category': 'Food & Dining',
+                'current': food_spending,
+                'suggested': 7000,
+                'savings': food_spending - 7000,
+                'tip': 'Try cooking 2-3 more meals at home per week and pack lunch for work'
             })
         
-        if category_totals.get('Entertainment', 0) > 5000:
+        # Entertainment recommendations
+        entertainment_spending = category_totals.get('Entertainment', 0)
+        if entertainment_spending > 4000:
             recommendations.append({
                 'category': 'Entertainment',
-                'current': category_totals['Entertainment'],
-                'suggested': 3000,
-                'savings': category_totals['Entertainment'] - 3000,
-                'tip': 'Choose free entertainment options like parks, free events, or home activities'
+                'current': entertainment_spending,
+                'suggested': 2500,
+                'savings': entertainment_spending - 2500,
+                'tip': 'Explore free entertainment like parks, free museums, home movie nights, and community events'
+            })
+        elif entertainment_spending > 2500:
+            recommendations.append({
+                'category': 'Entertainment',
+                'current': entertainment_spending,
+                'suggested': 2000,
+                'savings': entertainment_spending - 2000,
+                'tip': 'Look for discounts, group deals, and free activities in your area'
             })
         
-        if category_totals.get('Shopping', 0) > 8000:
+        # Shopping recommendations
+        shopping_spending = category_totals.get('Shopping', 0)
+        if shopping_spending > 6000:
             recommendations.append({
                 'category': 'Shopping',
-                'current': category_totals['Shopping'],
-                'suggested': 5000,
-                'savings': category_totals['Shopping'] - 5000,
-                'tip': 'Create a shopping list and stick to it. Wait 24 hours before non-essential purchases'
+                'current': shopping_spending,
+                'suggested': 4000,
+                'savings': shopping_spending - 4000,
+                'tip': 'Create a shopping list, wait 24 hours before non-essential purchases, and compare prices online'
+            })
+        elif shopping_spending > 4000:
+            recommendations.append({
+                'category': 'Shopping',
+                'current': shopping_spending,
+                'suggested': 3000,
+                'savings': shopping_spending - 3000,
+                'tip': 'Set a monthly shopping budget and stick to it. Avoid impulse purchases'
+            })
+        
+        # Transportation recommendations
+        transport_spending = category_totals.get('Transportation', 0)
+        if transport_spending > 4000:
+            recommendations.append({
+                'category': 'Transportation',
+                'current': transport_spending,
+                'suggested': 3000,
+                'savings': transport_spending - 3000,
+                'tip': 'Use public transport, carpool, or walk/bike for short distances. Plan trips efficiently'
             })
         
         return jsonify({
@@ -481,6 +582,34 @@ def get_analytics_summary():
     except Exception as e:
         print(f"Error getting analytics summary: {str(e)}")  # For debugging
         return jsonify({'error': 'Failed to load analytics data'}), 500
+
+@app.route('/api/regenerate-past-data', methods=['POST'])
+def regenerate_past_data():
+    try:
+        if 'user_id' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user_id = session['user_id']
+        print(f"Regenerating past month data for user: {user_id}")
+        
+        # Force regenerate past month data
+        past_month_data[user_id] = generate_past_month_data(user_id)
+        
+        total_amount = sum(exp['amount'] for exp in past_month_data[user_id])
+        expense_count = len(past_month_data[user_id])
+        
+        print(f"Generated {expense_count} expenses totaling ₹{total_amount}")
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Generated {expense_count} expenses totaling ₹{total_amount:,.0f}',
+            'total_amount': total_amount,
+            'expense_count': expense_count
+        })
+        
+    except Exception as e:
+        print(f"Error regenerating past data: {str(e)}")
+        return jsonify({'error': 'Failed to regenerate data'}), 500
 
 @app.route('/api/categories')
 def get_categories():

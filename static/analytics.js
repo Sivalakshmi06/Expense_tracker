@@ -7,12 +7,28 @@ let comparisonChart = null;
 
 // Initialize analytics dashboard
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadAnalyticsData();
-    await loadPastMonthData();
-    updateSummaryCards();
-    createCharts();
-    renderRecommendations();
-    renderUnnecessaryExpenses();
+    console.log('Loading analytics dashboard...');
+    
+    try {
+        await loadAnalyticsData();
+        console.log('Analytics data loaded:', analyticsData);
+        
+        await loadPastMonthData();
+        console.log('Past month data loaded:', pastMonthData.length, 'expenses');
+        
+        updateSummaryCards();
+        createCharts();
+        renderRecommendations();
+        renderUnnecessaryExpenses();
+        
+        // Check if data exists and show debug panel if needed
+        checkDataAndShowDebug();
+        
+        console.log('Analytics dashboard initialized successfully');
+    } catch (error) {
+        console.error('Error initializing analytics dashboard:', error);
+        showNotification('Failed to load analytics dashboard', 'error');
+    }
 });
 
 // Load analytics summary data
@@ -354,8 +370,14 @@ function renderUnnecessaryExpenses() {
         return;
     }
     
-    expensesList.innerHTML = unnecessaryExpenses.map(expense => {
-        const potentialSaving = Math.round(expense.amount * 0.3);
+    // Sort by saving potential (highest first)
+    const sortedExpenses = unnecessaryExpenses.sort((a, b) => (b.saving_potential || 0) - (a.saving_potential || 0));
+    
+    expensesList.innerHTML = sortedExpenses.map(expense => {
+        const savingPotential = expense.saving_potential || Math.round(expense.amount * 0.3);
+        const savingReason = expense.saving_reason || 'Consider reducing this expense';
+        const savingPercentage = expense.saving_percentage || 30;
+        
         return `
             <div class="expense-item">
                 <div class="expense-info">
@@ -363,12 +385,18 @@ function renderUnnecessaryExpenses() {
                     <div class="expense-details">
                         <span class="expense-category">${expense.category}</span>
                         <span><i class="fas fa-calendar"></i> ${formatDate(expense.date)}</span>
-                        <span><i class="fas fa-comment"></i> ${expense.description}</span>
+                        <span><i class="fas fa-exclamation-triangle" style="color: #FB923C;"></i> ${savingReason}</span>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 0.9rem; color: #666;">
+                        <i class="fas fa-lightbulb" style="color: #1E3A8A; margin-right: 5px;"></i>
+                        You could save ${savingPercentage}% on this expense
                     </div>
                 </div>
-                <div class="expense-amount">₹${expense.amount.toLocaleString('en-IN')}</div>
-                <div class="potential-savings">
-                    <i class="fas fa-piggy-bank"></i> Save ₹${potentialSaving.toLocaleString('en-IN')}
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 5px;">
+                    <div class="expense-amount">₹${expense.amount.toLocaleString('en-IN')}</div>
+                    <div class="potential-savings">
+                        <i class="fas fa-piggy-bank"></i> Save ₹${Math.round(savingPotential).toLocaleString('en-IN')}
+                    </div>
                 </div>
             </div>
         `;
@@ -397,6 +425,76 @@ async function logout() {
         }
     } catch (error) {
         showNotification('Logout failed', 'error');
+    }
+}
+
+// Debug functions
+function toggleDebug() {
+    const debugPanel = document.getElementById('debugPanel');
+    if (debugPanel) {
+        debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+async function regeneratePastData() {
+    try {
+        showNotification('Regenerating past month data...', 'success');
+        
+        const response = await fetch('/api/regenerate-past-data', {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification(data.message, 'success');
+            
+            // Reload the analytics data
+            await loadAnalyticsData();
+            await loadPastMonthData();
+            updateSummaryCards();
+            createCharts();
+            renderRecommendations();
+            renderUnnecessaryExpenses();
+            
+            // Update debug info
+            const debugInfo = document.getElementById('debugInfo');
+            if (debugInfo) {
+                debugInfo.innerHTML = `
+                    <strong>Data Regenerated:</strong><br>
+                    • Total Amount: ₹${data.total_amount?.toLocaleString('en-IN') || 0}<br>
+                    • Expense Count: ${data.expense_count || 0}<br>
+                    • Generated at: ${new Date().toLocaleString()}
+                `;
+            }
+        } else {
+            showNotification(data.error || 'Failed to regenerate data', 'error');
+        }
+    } catch (error) {
+        console.error('Error regenerating data:', error);
+        showNotification('Failed to regenerate data', 'error');
+    }
+}
+
+// Show debug panel if no data is found
+function checkDataAndShowDebug() {
+    const totalSpent = analyticsData.total_spent || 0;
+    const expenseCount = analyticsData.expense_count || 0;
+    
+    if (totalSpent === 0 || expenseCount === 0) {
+        const debugPanel = document.getElementById('debugPanel');
+        if (debugPanel) {
+            debugPanel.style.display = 'block';
+            const debugInfo = document.getElementById('debugInfo');
+            if (debugInfo) {
+                debugInfo.innerHTML = `
+                    <strong>⚠️ No past month data found!</strong><br>
+                    • Total Spent: ₹${totalSpent}<br>
+                    • Expense Count: ${expenseCount}<br>
+                    Click "Regenerate Past Month Data" to create sample data.
+                `;
+            }
+        }
     }
 }
 
